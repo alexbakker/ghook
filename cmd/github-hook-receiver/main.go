@@ -35,6 +35,10 @@ func main() {
 }
 
 func handleEvent(event *ghook.Event) error {
+	if event.Name == "ping" {
+		return nil
+	}
+
 	if event.Name != "push" {
 		return errors.New("unhandled event")
 	}
