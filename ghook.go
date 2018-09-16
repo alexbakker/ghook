@@ -99,14 +99,14 @@ func (r hookReader) Read(p []byte) (int, error) {
 		if err == io.EOF {
 			r.mac.Write(p[:n])
 			if !hmac.Equal(r.mac.Sum(nil), r.digest) {
-				return 0, errors.New("MACs are not equal")
+				return 0, errors.New("bad MAC")
 			}
 			return n, io.EOF
 		}
 		return 0, err
 	}
 
-	r.mac.Write(p)
+	r.mac.Write(p[:n])
 	return n, nil
 }
 
