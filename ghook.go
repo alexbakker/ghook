@@ -19,7 +19,7 @@ type (
 	// request is received and verified.
 	Callback func(event *Event) error
 
-	HubHook struct {
+	Hook struct {
 		secret []byte
 		cb     Callback
 	}
@@ -41,12 +41,12 @@ var (
 	errBadDigest = errors.New("bad digest")
 )
 
-func New(secret []byte, cb Callback) *HubHook {
-	return &HubHook{secret: secret, cb: cb}
+func New(secret []byte, cb Callback) *Hook {
+	return &Hook{secret: secret, cb: cb}
 }
 
 // ServeHTTP implements the http.Handler interface.
-func (h *HubHook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") != "application/json" {
 		writeError(w, errors.New("bad content type"), http.StatusBadRequest)
 		return
@@ -99,7 +99,7 @@ func (r hookReader) Read(p []byte) (int, error) {
 		if err == io.EOF {
 			r.mac.Write(p[:n])
 			if !hmac.Equal(r.mac.Sum(nil), r.digest) {
-				return 0, errors.New("bad MAC")
+				return 0, errBadDigest
 			}
 			return n, io.EOF
 		}

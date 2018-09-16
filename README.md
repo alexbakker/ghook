@@ -1,4 +1,4 @@
-# ghook
+# ghook [![godoc](https://godoc.org/github.com/alexbakker/ghook?status.svg)](https://godoc.org/github.com/alexbakker/ghook)
 
 __ghook__ is a small Go package for receiving GitHub web hooks.
 
@@ -29,4 +29,5 @@ func main() {
 ```
 
 You can then use the [go-github](https://github.com/google/go-github) package to
-parse the payload. See [cmd/github-hook-receiver](cmd/ghook) for a more elaborate example.
+parse the payload. See [cmd/github-hook-receiver](cmd/github-hook-receiver) for
+a more elaborate example.
