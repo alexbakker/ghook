@@ -19,7 +19,7 @@ var (
 )
 
 func main() {
-    hook := ghook.New(secret, func(event *hubhook.Event) error {
+    hook := ghook.New(secret, func(event *ghook.Event) error {
         fmt.Printf("received %s event!\n", event.Name)
         return nil
     })
