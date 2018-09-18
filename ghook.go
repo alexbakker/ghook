@@ -36,6 +36,10 @@ func New(secret []byte, cb Callback) *Hook {
 
 // ServeHTTP implements the http.Handler interface.
 func (h *Hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		writeError(w, errors.New("bad method"), http.StatusBadRequest)
+	}
+
 	if r.Header.Get("Content-Type") != "application/json" {
 		writeError(w, errors.New("bad content type"), http.StatusBadRequest)
 		return
