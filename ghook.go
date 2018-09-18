@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -29,16 +28,6 @@ type (
 		GUID    string
 		Payload []byte
 	}
-
-	hookReader struct {
-		r      io.Reader
-		digest []byte
-		mac    hash.Hash
-	}
-)
-
-var (
-	errBadDigest = errors.New("bad digest")
 )
 
 func New(secret []byte, cb Callback) *Hook {
@@ -64,19 +53,17 @@ func (h *Hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hr := hookReader{
-		r:      r.Body,
-		digest: digestBytes,
-		mac:    hmac.New(sha1.New, h.secret),
+	mac := hmac.New(sha1.New, h.secret)
+	tr := io.TeeReader(r.Body, mac)
+
+	data, err := ioutil.ReadAll(tr)
+	if err != nil {
+		writeError(w, err, http.StatusInternalServerError)
+		return
 	}
 
-	data, err := ioutil.ReadAll(&hr)
-	if err != nil {
-		if err == errBadDigest {
-			writeError(w, err, http.StatusForbidden)
-		} else {
-			writeError(w, err, http.StatusInternalServerError)
-		}
+	if !hmac.Equal(mac.Sum(nil), digestBytes) {
+		writeError(w, errors.New("bad digest"), http.StatusForbidden)
 		return
 	}
 
@@ -90,24 +77,6 @@ func (h *Hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err, http.StatusInternalServerError)
 		return
 	}
-}
-
-// Read implements the io.Reader interface.
-func (r hookReader) Read(p []byte) (int, error) {
-	n, err := r.r.Read(p)
-	if err != nil {
-		if err == io.EOF {
-			r.mac.Write(p[:n])
-			if !hmac.Equal(r.mac.Sum(nil), r.digest) {
-				return 0, errBadDigest
-			}
-			return n, io.EOF
-		}
-		return 0, err
-	}
-
-	r.mac.Write(p[:n])
-	return n, nil
 }
 
 // parseHeader parses the GitHub web hook header of the given request and
