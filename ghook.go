@@ -38,6 +38,7 @@ func New(secret []byte, cb Callback) *Hook {
 func (h *Hook) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		writeError(w, errors.New("bad method"), http.StatusBadRequest)
+		return
 	}
 
 	if r.Header.Get("Content-Type") != "application/json" {
