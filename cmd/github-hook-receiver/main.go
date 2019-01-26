@@ -10,7 +10,7 @@ import (
 	"os/exec"
 
 	"github.com/alexbakker/ghook"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v21/github"
 )
 
 var (
