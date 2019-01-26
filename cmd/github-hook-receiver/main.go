@@ -4,37 +4,60 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"io/ioutil"
 	logger "log"
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/alexbakker/ghook"
 	"github.com/google/go-github/v21/github"
 )
 
-var (
-	log       = logger.New(os.Stderr, "", 0)
-	secretEnv = "HOOK_SECRET"
+type Config struct {
+	Secret   *string         `json:"secret"`
+	Handlers []HandlerConfig `json:"handlers"`
+}
 
-	addr    = flag.String("addr", "127.0.0.1:8080", "address to listen on")
-	branch  = flag.String("branch", "master", "the branch this hook should apply for (all if omitted)")
-	command = flag.String("cmd", "", "command to execute")
+type HandlerConfig struct {
+	Repo    string `json:"repo"`
+	Ref     string `json:"ref"`
+	Command string `json:"command"`
+}
+
+var (
+	log    = logger.New(os.Stderr, "", 0)
+	config Config
+
+	addr     = flag.String("addr", "127.0.0.1:8080", "address to listen on")
+	filename = flag.String("config", "config.json", "the filename of the configuration file")
 )
 
 func main() {
 	flag.Parse()
 
-	secret := os.Getenv(secretEnv)
-	if secret == "" {
-		log.Fatalf("error: %s not set", secretEnv)
+	// parse the configuration file
+	bytes, err := ioutil.ReadFile(*filename)
+	if err != nil {
+		log.Fatalf("error loading config: %s", err)
+	}
+	if err = json.Unmarshal(bytes, &config); err != nil {
+		log.Fatalf("error parsing config: %s", err)
 	}
 
-	hook := ghook.New([]byte(secret), handleEvent)
+	// verify the config
+	if config.Secret == nil {
+		log.Fatalf("error: secret not set")
+	}
+
+	hook := ghook.New([]byte(*config.Secret), handleEvent)
 	log.Fatalf("error: %s", http.ListenAndServe(*addr, hook))
 }
 
 func handleEvent(event *ghook.Event) error {
+	log.Printf("handling %s event %s", event.Name, event.GUID)
+
 	if event.Name == "ping" {
 		return nil
 	}
@@ -52,12 +75,18 @@ func handleEvent(event *ghook.Event) error {
 }
 
 func handlePush(event *github.PushEvent) error {
-	if *command != "" {
-		cmd := exec.Command("/bin/sh", "-c", *command)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return err
+	for _, handler := range config.Handlers {
+		if handler.Repo != *event.Repo.FullName || !strings.Contains(*event.Ref, handler.Ref) {
+			continue
+		}
+
+		if handler.Command != "" {
+			cmd := exec.Command("/bin/sh", "-c", handler.Command)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				return err
+			}
 		}
 	}
 
