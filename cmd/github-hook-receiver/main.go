@@ -27,9 +27,9 @@ type HandlerConfig struct {
 }
 
 var (
-	log    = logger.New(os.Stderr, "", 0)
-	config Config
+	log = logger.New(os.Stderr, "", 0)
 
+	config   Config
 	addr     = flag.String("addr", "127.0.0.1:8080", "address to listen on")
 	filename = flag.String("config", "config.json", "the filename of the configuration file")
 )

@@ -45,6 +45,8 @@ Usage of github-hook-receiver:
     	the filename of the configuration file (default "config.json")
 ```
 
+The configuration file should have the following format:
+
 ```json
 {
     "secret": "d696f82431664d9ea93483789db0116c",

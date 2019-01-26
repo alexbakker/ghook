@@ -97,7 +97,14 @@ func parseHeader(r *http.Request) (event string, guid string, digest string, err
 		return
 	}
 
-	return event, guid, strings.TrimLeft(digest, "sha1="), nil
+	const prefix = "sha1="
+	if !strings.HasPrefix(digest, prefix) {
+		err = errors.New("unexpected digest prefix")
+		return
+	}
+
+	digest = digest[len(prefix):]
+	return
 }
 
 // readHeader retrieves the value of the given key from the header.
